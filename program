@@ -1,0 +1,84 @@
+#! /usr/bin/bash
+
+database=0
+if [[ $1 =~ [Cc][Rr][Ee][Aa][Tt][Ee] ]]
+then
+	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] && -n $3 ]]
+	then
+		exist=0
+		dirs=( $(basename -a ~/DBMS/*/))
+		for dir in ${dirs[@]}
+		do
+			if [[ "${3,,}" = "${dir,,}" ]]
+			then
+				exist=1
+				break
+			fi
+		done
+		if [ $exist -eq 0 ]
+		then
+			mkdir "${3,,}"
+			echo "Database Created"
+		else
+			echo "Database Already Exist"
+		fi
+	else
+		echo "Invalid Syntax"
+	fi
+elif [[ $1 =~ [Uu][Ss][Ee] && -n $2 ]]
+then
+	exist=0
+	dirs=( $(basename -a ~/DBMS/*/))
+	for dir in ${dirs[@]}
+	do
+		if [[ "${2,,}" = "${dir,,}" ]]
+		then
+			exist=1
+			break
+		fi
+	done
+	if [ $exist -eq 1 ]
+	then
+		database=$2
+		echo $database
+	else
+		echo "Database Doesn't Exist"
+	fi
+elif [[ $1 =~ [Dd][Rr][Oo][Pp] ]]
+then
+	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] && -n $3 ]]
+	then
+		exist=0
+		dirs=( $(basename -a ~/DBMS/*/))
+		for dir in ${dirs[@]}
+		do
+			if [[ "${3,,}" = "${dir,,}" ]]
+			then
+				exist=1
+				break
+			fi
+		done
+		if [ $exist -eq 1 ]
+		then
+			rm -r "${3,,}"
+			echo "Database Deleted"
+		else
+			echo "Database Doesn't Exist"
+		fi
+	else
+		echo "Invalid Syntax"
+	fi
+elif [[ $1 =~ [Ss][Hh][Oo][Ww] ]]
+then
+	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee][Ss] ]]
+	then
+		exist=0
+		dirs=( $(basename -a ~/DBMS/*/))
+		for dir in ${dirs[@]}
+		do
+			echo $dir
+		done
+	fi
+else
+	echo "Invalid Syntax"
+fi
