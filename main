@@ -1,0 +1,39 @@
+#!/bin/bash
+echo -e "\033[95m"
+
+cat <<'EOF'
+   _____ _                       _____  ____  
+  / ____(_)                     |  __ \|  _ \ 
+ | |  __ _ _ __   __ _  ___ _ __| |  | | |_) |
+ | | |_ | | '_ \ / _` |/ _ \ '__| |  | |  _ < 
+ | |__| | | | | | (_| |  __/ |  | |__| | |_) |
+  \_____|_|_| |_|\__, |\___|_|  |_____/|____/ 
+                  __/ |                       
+                 |___/                        
+
+EOF
+
+echo -e "\033[0m"
+sleep 0.5
+echo -e "\033[33m By Salma Hamed Algayar & Farida Emad Alden"
+
+IFS=""
+
+prompt="GingerDB ♥ "
+buff=''
+while IFS= read -p $prompt -r line; do
+
+	prompt="           "
+	buff+="$line "
+	[[ $line == *";" ]] && break;
+
+done
+query="${buff::-2}"
+#echo $query
+
+query_=$(echo $query | sed "s/(/ (/g" | tr -s " " | sed "s/ ,/,/g" | sed "s/, /,/g" | sed "s/( /(/g" | sed "s/ )/)/g")
+#echo "neat query: $query_"
+
+./create_table "$query_"
+
+
