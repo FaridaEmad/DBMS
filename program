@@ -3,7 +3,7 @@
 database=0
 if [[ $1 =~ [Cc][Rr][Ee][Aa][Tt][Ee] ]]
 then
-	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] && -n $3 ]]
+	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] && -n $3 && $# -eq 3 ]]
 	then
 		exist=0
 		dirs=( $(basename -a ~/DBMS/*/))
@@ -25,7 +25,7 @@ then
 	else
 		echo "Invalid Syntax"
 	fi
-elif [[ $1 =~ [Uu][Ss][Ee] && -n $2 ]]
+elif [[ $1 =~ [Uu][Ss][Ee] && -n $2 && $# -eq 2 ]]
 then
 	exist=0
 	dirs=( $(basename -a ~/DBMS/*/))
@@ -46,7 +46,7 @@ then
 	fi
 elif [[ $1 =~ [Dd][Rr][Oo][Pp] ]]
 then
-	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] && -n $3 ]]
+	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] && -n $3 && $# -eq 3 ]]
 	then
 		exist=0
 		dirs=( $(basename -a ~/DBMS/*/))
@@ -70,7 +70,7 @@ then
 	fi
 elif [[ $1 =~ [Ss][Hh][Oo][Ww] ]]
 then
-	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee][Ss] ]]
+	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee][Ss] && $# -eq 2 ]]
 	then
 		exist=0
 		dirs=( $(basename -a ~/DBMS/*/))
@@ -78,6 +78,8 @@ then
 		do
 			echo $dir
 		done
+	else
+		echo "Invalid Syntax"
 	fi
 else
 	echo "Invalid Syntax"
