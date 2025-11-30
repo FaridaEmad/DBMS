@@ -1,0 +1,239 @@
+#!/bin/bash
+
+is_valid_datatype() {
+	    local dtype="$1"
+	    dtype="${dtype,,}"
+	    if [[ ! ("$dtype" == "int" || "$dtype" == "varchar") ]]; then
+		    echo "Invalid Datatype: $dtype"
+		    exit
+	    fi
+		}
+
+column_exists() {
+	local -n arr="$1"
+	local target="$2"
+
+	target=$(echo "$target" | tr '[:upper:]' '[:lower:]')
+
+	for col in "${arr[@]}"; do
+		col=$(echo "$col" | tr '[:upper:]' '[:lower:]')
+		if [[ "$col" == "$target" ]]; then
+			break
+		fi
+	
+	done
+}
+
+
+table_exists() {
+	local arr=($(ls))
+	local target="$1"
+	not_found=1
+
+	target=$(echo "$target" | tr '[:upper:]' '[:lower:]')
+
+	for tbl in "${arr[@]}"; do
+		tbl=$(echo "$tbl" | tr '[:upper:]' '[:lower:]')
+		if [[ "$tbl" == "$target" ]]; then
+			not_found=0
+			break
+		fi
+	done
+
+	if [[ $not_found == 1 ]]; then
+		echo "Error: Table not found"
+		exit
+	fi
+}
+
+insert_record_query="$*"
+insert_record_lower=$(echo $insert_record_query | tr '[:upper:]' '[:lower:]')
+
+echo $insert_record_lower
+
+val=$(echo $insert_record_lower | awk '{print $5}')
+echo $val
+
+if [[ $insert_record_lower == "insert into "* && $val == "values" ]]; then
+	table_name=$(echo $insert_record_query | awk '{print $3}')
+	table_exists $table_name
+
+	metadataFile=".$table_name"
+
+	IFS=':' read -ra meta_column_names < <(sed -n '1p' "$metadataFile")
+	IFS=':' read -ra meta_datatypes < <(sed -n '2p' "$metadataFile")
+	IFS=':' read -ra meta_constraints < <(sed -n '3p' "$metadataFile")
+
+	echo "${meta_column_names[@]}"
+	echo "${meta_datatypes[@]}"
+	echo "${meta_constraints[@]}"
+
+	columns=$(echo "$insert_record_query" | awk '{ print $4 }')
+	
+	if [[ ! $columns =~ ^\(.*\)$ ]]; then
+		echo "Syntax Error"
+		exit
+	fi
+
+	clean=${columns#(}
+	clean=${clean%)}
+
+	IFS=',' read -ra user_column_names <<< "$clean"
+
+	values=$(echo "$insert_record_query" | awk '{ print $6 }')
+
+	if [[ ! $values =~ ^\(.*\)$ ]]; then
+		echo "Syntax Error"
+		exit
+	fi
+
+	clean=${values#(}
+	clean=${clean%)}
+
+	IFS=',' read -ra user_values <<< "$clean"
+
+	echo "${user_column_names[@]}"
+	echo "${user_values[@]}"
+
+	sorted_metadata_column_names=$(printf "%s\n" "${meta_column_names[@]}" | sort | tr '\n' ' ')
+	sorted_user_column_names=$(printf "%s\n" "${user_column_names[@]}" | sort | tr '\n' ' ')
+
+	if [[ "$sorted_metadata_column_names" != "$sorted_user_column_names" ]]; then
+		    echo "Error: Column mismatch, Supply all columns"
+		        exit
+	fi
+
+
+
+
+
+	declare -A map
+
+	for i in "${!user_column_names[@]}"; do
+		key="${user_column_names[$i]}"
+		map["$key"]="${user_values[$i]}"
+
+		echo $i
+		echo $key
+		echo ${map[$key]}
+      	done
+	
+
+	ordered_values=()
+	for col in "${meta_column_names[@]}"; do
+		echo "-----------"
+		echo $col
+		ordered_values+=("${map[$col]}")
+		echo ${ordered_values[@]}
+	done
+
+	echo "Ordered_values: ${ordered_values[@]}"
+	echo ${ordered_values[@]}
+
+	for i in "${!meta_datatypes[@]}"; do
+		echo $i
+		dt="${meta_datatypes[$i]}"
+		echo "DataType :)) $dt"
+		val="${ordered_values[$i]}"
+		echo $val
+		clean_val=$(echo "$val" | sed 's/^"//;s/"$//')
+		echo $clean_val
+		case "$dt" in
+			int)
+				if ! [[ $clean_val =~ ^[0-9]+$ ]]; then
+					echo "Datatype error: $clean_val must be int"
+					exit
+				fi
+				;;
+			
+			varchar)
+				true
+			       	;;
+			*)
+			       	echo "Unknown datatype: $dt"
+	                        exit 1
+				;;
+		esac
+	done
+
+	pk_index=-1
+	for i in "${!meta_constraints[@]}"; do
+		if [[ "${meta_constraints[$i]}" == "1" ]]; then
+			pk_index=$i
+			echo "PK:$pk_index"
+			break
+		fi
+	done
+	pk_value="${ordered_values[$pk_index]}"
+	clean_pk=$(echo "$pk_value" | sed 's/^"//;s/"$//')
+
+echo "PKV: $pk_value"	
+echo "PKVC: $clean_pk"	
+
+
+awk_col=$((pk_index + 1))
+clean_pk=$(echo "$clean_pk" | sed 's/^"//;s/"$//')
+
+	record=$(IFS=':'; echo "${ordered_values[*]}")
+	echo "$record" >> "test317"
+: <<'END_COMMENT'
+if awk -F: -v pk="$clean_pk" -v col="$awk_col" '
+    $col == pk { found=1; exit }
+    END { exit (found ? 0 : 1) }
+' "$tableName"; then
+    echo "Error: Primary key violation: $clean_pk"
+    exit 1
+fi
+
+	if awk -F: -v pk="$clean_pk" -v col="$pk_index" '$col == pk { exit 0 } END { exit 1 }' "$tableName"; then
+		echo "Error: Primary key violation"
+		exit 
+	fi
+
+	columns=$(echo "$create_table_query" | awk '{ $1=""; $2=""; $3=""; sub(/^ +/, ""); print }')
+
+
+
+	col_names=()
+	col_types=()
+	constraints=()
+
+	IFS=',' read -ra cols <<< "$clean"
+
+	pk=-1
+	for line in "${cols[@]}"; do
+		name=$(echo "$line" | awk '{print $1}')
+		type=$(echo "$line" | awk '{print $2}')
+		constraint=$(echo "$line" | awk '{ $1=""; $2=""; sub(/^ +/, ""); print }')
+		constraint_lower=$(echo "$constraint" | tr '[:upper:]' '[:lower:]')
+
+		if [[ ! ("$constraint_lower" == "primary key" || -z $constraint) ]]; then
+			echo "Invalid Constraint"
+			exit
+		elif [[ "$constraint_lower" == "primary key" ]]; then
+			pk=$((pk+1))
+		fi
+
+		if [[ pk > 0 ]]; then
+			echo "Error: No more than one primary key"
+			exit
+		fi
+
+		is_invalid_name $name
+		column_exists col_names $name
+		is_valid_datatype $type
+
+		col_names+=("$name")
+		col_types+=("$type")
+		constraints+=("$constraint")
+
+	done
+	touch "$table_name" ".$table_name"
+
+	(IFS=":"; echo "${col_names[*]}") > ".$table_name"
+	(IFS=":"; echo "${col_types[*]}") >> ".$table_name"
+	(IFS=":"; echo "${constraints[*]}") >> ".$table_name"
+
+END_COMMENT
+fi
+

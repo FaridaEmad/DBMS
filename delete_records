@@ -1,0 +1,179 @@
+#!/bin/bash
+
+get_column_datatype() {
+    local metadataFile="$1"
+    local target="$2"
+    local index
+
+    # First get the index
+    index=$(get_column_index "$metadataFile" "$target") || exit 1
+
+    # Read second line (datatypes)
+    IFS=':' read -ra types < <(sed -n '2p' "$metadataFile")
+
+    echo "${types[$index]}"
+}
+
+
+get_column_index() {
+    local metadataFile="$1"
+    local target="$2"
+    target=$(echo "$target" | tr '[:upper:]' '[:lower:]')
+
+    # Read first line (column names)
+    IFS=':' read -ra cols < <(sed -n '1p' "$metadataFile")
+
+    for i in "${!cols[@]}"; do
+        col="${cols[$i]}"
+        col=$(echo "$col" | tr '[:upper:]' '[:lower:]')
+
+        if [[ "$col" == "$target" ]]; then
+            echo "$i"
+            return 0
+        fi
+    done
+
+    echo "Error: Column '$target' not found" >&2
+    exit 1
+}
+
+
+is_valid_datatype() {
+	    local dtype="$1"
+	    dtype="${dtype,,}"
+	    if [[ ! ("$dtype" == "int" || "$dtype" == "varchar") ]]; then
+		    echo "Invalid Datatype: $dtype"
+		    exit
+	    fi
+		}
+
+column_exists() {
+	local -n arr="$1"
+	local target="$2"
+	local not_found=1
+
+
+	target=$(echo "$target" | tr '[:upper:]' '[:lower:]')
+
+	for col in "${arr[@]}"; do
+		col=$(echo "$col" | tr '[:upper:]' '[:lower:]')
+		if [[ "$col" == "$target" ]]; then
+			not_found=0
+			echo "Cheeeeeeeeeeers"
+			break
+		fi
+	
+	done
+	if [[ $not_found == 1 ]]; then
+		echo "Error: Column not found"
+		exit
+	fi
+}
+
+
+table_exists() {
+	local arr=($(ls))
+	local target="$1"
+	not_found=1
+
+	target=$(echo "$target" | tr '[:upper:]' '[:lower:]')
+
+	for tbl in "${arr[@]}"; do
+		tbl=$(echo "$tbl" | tr '[:upper:]' '[:lower:]')
+		if [[ "$tbl" == "$target" ]]; then
+			not_found=0
+			break
+		fi
+	done
+
+	if [[ $not_found == 1 ]]; then
+		echo "Error: Table not found"
+		exit
+	fi
+}
+
+#delete_record_query="$*"
+delete_record_query="DELETE FROM test317 WHERE fav_food >= Cake"
+delete_record_lower=$(echo $delete_record_query | tr '[:upper:]' '[:lower:]')
+
+echo $delete_record_lower
+
+where=$(echo $delete_record_lower | awk '{print $4}')
+echo $where
+
+if [[ $delete_record_lower == "delete from "* && $where == "where" ]]; then
+	table_name=$(echo $delete_record_query | awk '{print $3}')
+	echo $table_name
+	table_exists $table_name
+	metadataFile=".$table_name"
+
+	column_name=$(echo $delete_record_query | awk '{print $5}')
+	echo $column_name
+	IFS=':' read -ra meta_column_names < <(sed -n '1p' "$metadataFile")
+	IFS=':' read -ra meta_datatypes < <(sed -n '2p' "$metadataFile")
+
+	echo "${meta_column_names[@]}"
+	echo "${meta_datatypes[@]}"
+
+	column_exists meta_column_names $column_name
+
+	idx=$(get_column_index $metadataFile $column_name)
+	echo "$idx"
+
+	datatype=$(get_column_datatype $metadataFile $column_name)
+	echo "$datatype"
+
+	operator=$(echo $delete_record_query | awk '{print $6}')
+	echo "$operator"
+
+	value=$(echo $delete_record_query | awk '{print $7}')
+	echo "$value"
+
+
+	case "$operator" in
+    	"=")
+        	awk_cond='$col == value'
+        	;;
+    	"!=")
+        	awk_cond='$col != value'
+        	;;
+    	">")
+        	awk_cond='$col > value'
+        	;;
+    	"<")
+        	awk_cond='$col < value'
+        	;;
+    	">=")
+        	awk_cond='$col >= value'
+        	;;
+    	"<=")
+        	awk_cond='$col <= value'
+        	;;
+	*)
+		echo "Error: Invalid Operator"
+		exit
+		;;
+	esac
+
+
+	echo $awk_cond
+
+
+	awk_col=$((idx + 1))
+
+	awk -F: -v col="$awk_col" -v value="$value" '
+    	'"$awk_cond"' { next }   # skip rows that MATCH → DELETE
+    	{ print }                # keep all other rows
+	' "$table_name" > bo
+
+
+
+	
+: <<'END_COMMENT'
+
+END_COMMENT
+fi
+
+
+
+
