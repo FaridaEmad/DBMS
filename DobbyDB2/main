@@ -46,7 +46,7 @@ while true; do
 	case "$query" in
 		create\ database\ *)
 			echo "Create database"
-			./create_database
+			./create_database $query
 			;;
 		drop\ database\ *)
 			echo "Drop Database"
@@ -79,7 +79,7 @@ while true; do
 			;;
 		drop\ table\ *)
 			echo "Drop Table"
-			./drop_list_tables
+			./drop_list_tables $query
 			;;
 		*)
 			echo -e "\033[31mInvalid Query, Sir!\033[0m"
