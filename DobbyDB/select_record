@@ -1,0 +1,253 @@
+#!/bin/bash
+
+validate_value_datatype() {
+    local datatype="$1"
+    local value="$2"
+
+    case "$datatype" in
+        int)
+            # must be a valid integer (no quotes allowed)
+            if [[ "$value" =~ ^-?[0-9]+$ ]]; then
+		    echo "GOOD $datatype"
+                return 0
+            else
+                echo "Error: Value '$value' is not a valid INT"
+                exit 1
+            fi
+            ;;
+
+        varchar)
+            # varchar values must be quoted: 'text' or "text"
+            if [[ "$value" =~ ^\".*\"$ || "$value" =~ ^\'.*\'$ ]]; then
+		    echo "GOOD $datatype"
+                return 0
+            else
+                echo "Error: Value '$value' must be quoted for VARCHAR"
+                exit 1
+            fi
+            ;;
+
+        *)
+            echo "Error: Unknown datatype '$datatype'"
+            exit 1
+            ;;
+    esac
+}
+
+get_column_datatype() {
+    local metadataFile="$1"
+    local target="$2"
+
+    target=$(echo "$target" | tr '[:upper:]' '[:lower:]')
+
+    # Read column names
+    IFS=':' read -ra cols < <(sed -n '1p' "$metadataFile")
+
+    # Read datatypes
+    IFS=':' read -ra types < <(sed -n '2p' "$metadataFile")
+
+    for i in "${!cols[@]}"; do
+        col="${cols[$i]}"
+        col=$(echo "$col" | tr '[:upper:]' '[:lower:]')
+
+        if [[ "$col" == "$target" ]]; then
+            echo "${types[$i]}"
+            return 0
+        fi
+    done
+
+    echo "Error: Column '$target' not found" >&2
+    exit 1
+}
+
+
+
+
+get_column_index() {
+    local metadataFile="$1"
+    local target="$2"
+    target=$(echo "$target" | tr '[:upper:]' '[:lower:]')
+
+    # Read first line (column names)
+    IFS=':' read -ra cols < <(sed -n '1p' "$metadataFile")
+
+    for i in "${!cols[@]}"; do
+        col="${cols[$i]}"
+        col=$(echo "$col" | tr '[:upper:]' '[:lower:]')
+
+        if [[ "$col" == "$target" ]]; then
+		echo "$((i+1))"
+            return 0
+        fi
+    done
+
+    echo "Error: Column '$target' not found" >&2
+    exit 1
+}
+
+
+
+column_exists() {
+        local -n arr="$1"
+        local target="$2"
+        local not_found=1
+
+
+        target=$(echo "$target" | tr '[:upper:]' '[:lower:]')
+
+        for col in "${arr[@]}"; do
+                col=$(echo "$col" | tr '[:upper:]' '[:lower:]')
+                if [[ "$col" == "$target" ]]; then
+                        not_found=0
+                        echo "Cheeeeeeeeeeers"
+                        break
+                fi
+
+        done
+        if [[ $not_found == 1 ]]; then
+                echo "Error: Column not found"
+                exit
+        fi
+}
+
+
+
+is_valid_datatype() {
+	    local dtype="$1"
+	    dtype="${dtype,,}"
+	    if [[ ! ("$dtype" == "int" || "$dtype" == "varchar") ]]; then
+		    echo "Invalid Datatype: $dtype"
+		    exit
+	    fi
+		}
+
+
+table_exists() {
+	local arr=($(ls))
+	local target="$1"
+	not_found=1
+
+	target=$(echo "$target" | tr '[:upper:]' '[:lower:]')
+
+	for tbl in "${arr[@]}"; do
+		tbl=$(echo "$tbl" | tr '[:upper:]' '[:lower:]')
+		if [[ "$tbl" == "$target" ]]; then
+			not_found=0
+			break
+		fi
+	done
+
+	if [[ $not_found == 1 ]]; then
+		echo "Error: Table not found"
+		exit
+	fi
+}
+
+select_record_query="$*"
+#select_record_query="SELECT fav_food,*,name FROM test317 WHERE name > 64"
+select_record_lower=$(echo $select_record_query | tr '[:upper:]' '[:lower:]')
+
+echo $select_record_lower
+
+from=$(echo $select_record_lower | awk '{print $3}')
+echo $from
+
+where=$(echo $select_record_lower | awk '{print $5}')
+echo $where
+
+if [[ $select_record_lower == "select "* && $from == "from" && $where == "where" ]]; then
+	table_name=$(echo $select_record_query | awk '{print $4}')
+	table_exists $table_name
+
+	metadataFile=".$table_name"
+
+	IFS=':' read -ra meta_column_names < <(sed -n '1p' "$metadataFile")
+	IFS=':' read -ra meta_datatypes < <(sed -n '2p' "$metadataFile")
+	IFS=':' read -ra meta_constraints < <(sed -n '3p' "$metadataFile")
+
+	echo "${meta_column_names[@]}"
+	echo "${meta_datatypes[@]}"
+	echo "${meta_constraints[@]}"
+
+	IFS=',' read -ra column_names < <(echo $select_record_query | awk '{print $2}')
+	echo "${column_names[@]}"
+	#column_exists meta_column_names $set_column
+
+	cond_column=$(echo $select_record_query | awk '{print $6}')
+	echo $cond_column
+	column_exists meta_column_names $cond_column
+
+	cond_column_idx=$(get_column_index $metadataFile $cond_column)
+	echo $cond_column_idx
+
+	cond_operator=$(echo $select_record_query | awk '{print $7}')
+	echo $cond_operator
+
+	cond_value=$(echo $select_record_query | awk '{print $8}')
+	echo $cond_value
+
+	cond_val_clean="${cond_value%\"}"; cond_val_clean="${cond_val_clean#\"}"
+	cond_val_clean="${cond_val_clean%\'}"; cond_val_clean="${cond_val_clean#\'}"
+	
+	# Build AWK condition for WHERE
+	case "$cond_operator" in
+    	"="|"==")
+		awk_cond='$(cond_column_idx) == cond_val_clean'
+        	;;
+    	"!=")
+		awk_cond='$(cond_column_idx) != cond_val_clean'
+        	;;
+    	">")
+		awk_cond='$(cond_column_idx) > cond_val_clean'
+        	;;
+    	"<")
+		awk_cond='$(cond_column_idx) < cond_val_clean'
+        	;;
+    	">=")
+		awk_cond='$(cond_column_idx) >= cond_val_clean'
+        	;;
+    	"<=")
+		awk_cond='$(cond_column_idx) <= cond_val_clean'
+        	;;
+    	*)
+        	echo "Error: Invalid condition operator $cond_operator"
+        	exit 1
+        	;;
+	esac
+
+	
+
+	disp_cols='print '
+
+	for col in "${column_names[@]}"; do
+		if [[ $col == "*" ]]; then
+			idx=0
+		else
+			column_exists meta_column_names $col
+		       	idx=$(get_column_index $metadataFile $col)
+		fi
+        	disp_cols+="\$${idx},"
+
+	done
+	
+	disp_cols="${disp_cols%,}"
+
+	awk -F ":" 'BEGIN { OFS=":" } NR==1 { '"$disp_cols"' }' ".$table_name"
+
+	awk -F ":" -v cond_column_idx=$cond_column_idx -v cond_val_clean=$cond_val_clean '
+	BEGIN { OFS=":" }
+	'"$awk_cond"' {
+    		'"$disp_cols"'
+	}
+	' $table_name
+
+
+
+
+: <<'END_COMMENT'
+
+END_COMMENT
+fi
+
+
+
