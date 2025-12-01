@@ -43,13 +43,15 @@ while true; do
 	case "$query" in
 		create\ database\ *)
 			echo "Create database"
-			./create_database
+			./create_database $query
 			;;
 		drop\ database\ *)
 			echo "Drop Database"
+			./create_database $query
 			;;
-		show\ databases)
+		show\ databases )
 			echo "Show Databases"
+			./create_database $query
 			;;
 		create\ table\ *)
 			echo "Create Table"
