@@ -1,0 +1,3 @@
+id:name:age
+int:varchar:int
+primary key::

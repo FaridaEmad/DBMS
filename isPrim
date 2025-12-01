@@ -1,0 +1,48 @@
+#!/bin/bash
+
+is_primary_key(){
+	local colName="$1"
+	local tableName="$2"
+	local metaFile=".${tableName}"
+
+	if [[ ! -f "$metaFile" ]]
+	then
+		echo "The metedata file of table '$tableName' is not found. "
+		return 1
+	fi
+
+	IFS=':' read -ra metaColNames < <(sed -n '1p' "$metaFile")
+	IFS=':' read -ra metaConstraint < <(sed -n '3p' "$metaFile")
+
+	colName="${colName,,}"
+
+	local index=-1
+	for i in "${!metaColNames[@]}"
+	do
+		if [[ "${metaColNames[$i]}" == "$colName" ]]
+		then
+			index=$i
+			break
+		fi
+	done
+
+	if [[ $index -eq -1 ]]
+	then
+		echo "Column '$colName' not found."
+		return 1
+	fi
+
+	if [[ "${metaConstraint[$index],,}" == "primary key" ]]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
+if is_primary_key "id" "test"
+then
+	echo "prim"
+else
+	echo "not"
+fi
