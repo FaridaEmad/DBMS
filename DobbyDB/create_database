@@ -17,6 +17,11 @@ then
 		done
 		if [ $exist -eq 0 ]
 		then
+			if [[ $3 =~ ^[0-9] || $3 =~ [[:space:]] || $3 =~ [^a-zA-Z0-9_] ]]
+			then
+				echo "Invalid name for Database"
+				exit
+			fi
 			mkdir "${3,,}"
 			echo "Database Created"
 		else

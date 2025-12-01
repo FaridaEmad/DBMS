@@ -1,9 +1,9 @@
-#! /usr/bin/bash
+#!/bin/bash
 
 database=0
 if [[ $1 =~ [Cc][Rr][Ee][Aa][Tt][Ee] ]]
 then
-	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] && -n $3 && $# -eq 3 ]]
+	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] && -n $3 ]]
 	then
 		exist=0
 		dirs=( $(basename -a ~/DBMS/*/))
@@ -17,6 +17,11 @@ then
 		done
 		if [ $exist -eq 0 ]
 		then
+			if [[ $3 =~ ^[0-9] || $3 =~ [[:space:]] || $3 =~ [^a-zA-Z0-9_] ]]
+			then
+				echo "Invalid name for Database"
+				exit
+			fi
 			mkdir "${3,,}"
 			echo "Database Created"
 		else
@@ -25,7 +30,7 @@ then
 	else
 		echo "Invalid Syntax"
 	fi
-elif [[ $1 =~ [Uu][Ss][Ee] && -n $2 && $# -eq 2 ]]
+elif [[ $1 =~ [Uu][Ss][Ee] && -n $2 ]]
 then
 	exist=0
 	dirs=( $(basename -a ~/DBMS/*/))
@@ -46,7 +51,7 @@ then
 	fi
 elif [[ $1 =~ [Dd][Rr][Oo][Pp] ]]
 then
-	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] && -n $3 && $# -eq 3 ]]
+	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee] && -n $3 ]]
 	then
 		exist=0
 		dirs=( $(basename -a ~/DBMS/*/))
@@ -70,7 +75,7 @@ then
 	fi
 elif [[ $1 =~ [Ss][Hh][Oo][Ww] ]]
 then
-	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee][Ss] && $# -eq 2 ]]
+	if [[ $2 =~ [Dd][Aa][Tt][Aa][Bb][Aa][Ss][Ee][Ss] ]]
 	then
 		exist=0
 		dirs=( $(basename -a ~/DBMS/*/))
@@ -78,8 +83,6 @@ then
 		do
 			echo $dir
 		done
-	else
-		echo "Invalid Syntax"
 	fi
 else
 	echo "Invalid Syntax"
