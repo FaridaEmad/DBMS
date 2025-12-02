@@ -16,6 +16,9 @@ then
 			then
 				continue
 			fi
+			if [[ "$table" == *.* ]]; then
+        		continue
+    		fi
 			echo "${table,,}"
 		done
 	else
