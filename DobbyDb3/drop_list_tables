@@ -1,0 +1,52 @@
+#! /usr/bin/bash
+
+fullQuery=$1
+
+read -ra words <<< "$fullQuery"
+wordCount=${#words[@]}
+
+if [[ ${words[0],,} == "show" ]]
+then
+	if [[ ${words[1],,} == 'tables' && wordCount -eq 2 ]]
+	then
+		tables=( $(ls -f))
+		for table in ${tables[@]}
+		do
+			if [[ "${table,,}" == "." || "${table,,}" == ".." ]]
+			then
+				continue
+			fi
+			echo "${table,,}"
+		done
+	else
+		echo "Invalid Syntax"
+	fi
+elif [[ ${words[0],,} == "drop" ]]
+then
+	if [[ ${words[1],,} == 'table' && wordCount -eq 3 ]]
+	then
+		exist=0
+		tables=( $(ls -f))
+		for table in ${tables[@]}
+		do
+			if [[ "${words[2],,}" == "${table,,}" ]]
+			then
+				exist=1
+				break
+			fi
+		done
+		if [[ exist -eq 1 ]]
+		then
+			rm "${words[2],,}"
+			rm ".${words[2],,}"
+			echo "Table Dropped"
+		else
+			echo "Table doesn't exist"
+		fi
+	else
+		echo "Invalid Syntax"
+	fi
+else
+	echo "Invalid Syntax"
+fi
+
