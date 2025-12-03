@@ -1,0 +1,36 @@
+#!/bin/bash
+
+fullQuery=$1
+
+read -ra words <<< "$fullQuery"
+wordCount=${#words[@]}
+
+database=0
+
+if [[ ${words[0],,} == "use" &&  $wordCount -eq 2 ]]
+then
+	exist=0
+	dirs=( $(basename -a ~/DBMS/DobbyDb3/*/))
+	for dir in ${dirs[@]}
+	do
+		if [[ "${words[1],,}" == "${dir,,}" ]]
+		then
+			exist=1
+			break
+		fi
+	done
+	if [ $exist -eq 1 ]
+	then
+		database=${words[1],,}
+		echo $database
+	else
+		echo "Database Doesn't Exist"
+		exit
+	fi
+else
+	echo "sir!!!!!     jj"
+	exit
+fi
+
+
+
